@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rodosol-telegram-bot 
+  namespace: default
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: rodosol-telegram-bot 
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: rodosol-telegram-bot 
+        version: v1
+    spec:
+      containers:
+      - image: IMAGE:TAG 
+        imagePullPolicy: IfNotPresent
+        name: rodosol-telegram-bot 
+        env:
+        - name: TELEGRAM_BOT_TOKEN 
+          valueFrom:
+            secretKeyRef:
+              name: rodosol-telegram-bot-secrets
+              key: telegram_bot_token 
+        - name: RUST_BACKTRACE
+          value: "1" 
+        resources:
+          limits:
+            cpu: 250m 
+            memory: 256Mi
+          requests:
+            cpu: 100m 
+            memory: 100Mi
