@@ -1,6 +1,8 @@
+extern crate futures;
 extern crate reqwest;
 extern crate scraper;
 
+use futures::future;
 use futures::StreamExt;
 use std::env;
 
@@ -38,11 +40,13 @@ async fn send_pictures(
 
     let nodes = Selector::parse(selector).unwrap();
 
-    // TODO: send these images in parallel
-    for node in fragment.select(&nodes) {
+    let _ = future::try_join_all(fragment.select(&nodes).into_iter().map(|node| {
         let photo_href = node.value().attr("href").unwrap();
-        api.send(chat.photo(InputFileRef::new(photo_href))).await?;
-    }
+        api.send(chat.photo(InputFileRef::new(photo_href)))
+    }))
+    .compat()
+    .await
+    .unwrap();
 
     Ok(())
 }
@@ -55,9 +59,14 @@ async fn main() -> Result<(), Error> {
     let api = Api::new(token);
 
     let mut stream = api.stream();
+
     // .compat() is needed here
     // because reqwest uses tokio 0.2
     // while telegram-bot uses tokio 1.x
+    //
+    // compat() is a trait implemented by the
+    // tokio-compat-02 package to allow different libraries using
+    // different tokio runtimes to work in the same process
     while let Some(update) = stream.next().compat().await {
         if let UpdateKind::Message(message) = update?.kind {
             let api = api.clone();
