@@ -8,7 +8,7 @@ use std::env;
 
 use scraper::{Html, Selector};
 use telegram_bot::prelude::*;
-use telegram_bot::{Api, Error, InputFileRef, Message, MessageKind, UpdateKind};
+use telegram_bot::{Api, InputFileRef, Message, MessageKind, UpdateKind};
 use tokio_compat_02::FutureExt;
 
 enum RoadType {
@@ -52,7 +52,7 @@ async fn send_pictures(
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
 
     let token = env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN not set");
@@ -71,19 +71,15 @@ async fn main() -> Result<(), Error> {
         if let UpdateKind::Message(message) = update?.kind {
             let api = api.clone();
 
-            match message.kind {
-                MessageKind::Text { ref data, .. } if data.as_str() == "/tp_now" => {
-                    if let Err(err) = send_pictures(api, message, RoadType::TerceiraPonte).await {
-                        eprintln!("Error: {:?}", err);
-                    }
+            if let MessageKind::Text { ref data, .. } = message.kind {
+                let command = data.as_str();
+
+                match command {
+                    "/tp_now" => send_pictures(api, message, RoadType::TerceiraPonte).await?,
+                    "/rodosol_now" => send_pictures(api, message, RoadType::Rodosol).await?,
+                    _ => (),
                 }
-                MessageKind::Text { ref data, .. } if data.as_str() == "/rodosol_now" => {
-                    if let Err(err) = send_pictures(api, message, RoadType::Rodosol).await {
-                        eprintln!("Error: {:?}", err);
-                    }
-                }
-                _ => (),
-            };
+            }
         }
     }
 
