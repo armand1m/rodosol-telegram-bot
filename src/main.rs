@@ -33,7 +33,6 @@ async fn send_pictures(
     message: Message,
     road_type: RoadType,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let chat = message.chat.clone();
     let body_response = reqwest::get("https://www.rodosol.com.br/de-olho-na-via/")
         .await?
         .text()
