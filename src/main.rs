@@ -11,6 +11,13 @@ use telegram_bot::prelude::*;
 use telegram_bot::{Api, InputFileRef, Message, MessageKind, UpdateKind};
 use tokio_compat_02::FutureExt;
 
+#[derive(Debug)]
+enum Command {
+    TerceiraPonteNow,
+    RodosolNow,
+}
+
+#[derive(Debug)]
 enum RoadType {
     TerceiraPonte,
     Rodosol,
@@ -39,10 +46,17 @@ async fn send_pictures(
     };
 
     let nodes = Selector::parse(selector).unwrap();
+    let selected_nodes = fragment.select(&nodes);
+    let collected = selected_nodes.into_iter().collect::<Vec<_>>();
+    
+    if collected.len() == 0 {
+        api.send(message.text_reply("Imagens indisponiveis no site da Rodosol.")).await?;
+        return Ok(());
+    }
 
-    let _ = future::try_join_all(fragment.select(&nodes).into_iter().map(|node| {
+    let _ = future::try_join_all(collected.into_iter().map(|node| {
         let photo_href = node.value().attr("href").unwrap();
-        api.send(chat.photo(InputFileRef::new(photo_href)))
+        api.send(message.photo_reply(InputFileRef::new(photo_href)))
     }))
     .compat()
     .await
@@ -51,10 +65,29 @@ async fn send_pictures(
     Ok(())
 }
 
+fn get_command(message: &str, bot_name: &str) -> Option<Command> {
+    if !message.starts_with("/") {
+        return None;
+    }
+
+    // splits the bot name from the command, in case it is there
+    let mut cmd = message.clone();
+    if cmd.ends_with(bot_name) {
+        cmd = cmd.rsplitn(2, '@').skip(1).next().unwrap();
+    }
+
+    match cmd {
+        "/tp_now" => Some(Command::TerceiraPonteNow),
+        "/rodosol_now" => Some(Command::RodosolNow),
+        _ => None,
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
 
+    let bot_name = env::var("TELEGRAM_BOT_NAME").expect("TELEGRAM_BOT_NAME not set");
     let token = env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN not set");
     let api = Api::new(token);
 
@@ -72,11 +105,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let api = api.clone();
 
             if let MessageKind::Text { ref data, .. } = message.kind {
-                let command = data.as_str();
+                let command = get_command(data.as_str(), bot_name.as_str());
 
                 match command {
-                    "/tp_now" => send_pictures(api, message, RoadType::TerceiraPonte).await?,
-                    "/rodosol_now" => send_pictures(api, message, RoadType::Rodosol).await?,
+                    Some(Command::TerceiraPonteNow) => send_pictures(api, message, RoadType::TerceiraPonte).await?,
+                    Some(Command::RodosolNow) => send_pictures(api, message, RoadType::Rodosol).await?,
                     _ => (),
                 }
             }
