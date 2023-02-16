@@ -47,9 +47,10 @@ async fn send_pictures(
     let nodes = Selector::parse(selector).unwrap();
     let selected_nodes = fragment.select(&nodes);
     let collected = selected_nodes.into_iter().collect::<Vec<_>>();
-    
+
     if collected.len() == 0 {
-        api.send(message.text_reply("Imagens indisponiveis no site da Rodosol.")).await?;
+        api.send(message.text_reply("Imagens indisponiveis no site da Rodosol."))
+            .await?;
         return Ok(());
     }
 
@@ -107,8 +108,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let command = get_command(data.as_str(), bot_name.as_str());
 
                 match command {
-                    Some(Command::TerceiraPonteNow) => send_pictures(api, message, RoadType::TerceiraPonte).await?,
-                    Some(Command::RodosolNow) => send_pictures(api, message, RoadType::Rodosol).await?,
+                    Some(Command::TerceiraPonteNow) => {
+                        send_pictures(api, message, RoadType::TerceiraPonte).await?
+                    }
+                    Some(Command::RodosolNow) => {
+                        send_pictures(api, message, RoadType::Rodosol).await?
+                    }
                     _ => (),
                 }
             }
