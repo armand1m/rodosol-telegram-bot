@@ -1,0 +1,24 @@
+# fly.toml file generated for rodosol-telegram-bot on 2023-02-16T23:45:47+01:00
+
+app = "rodosol-telegram-bot"
+kill_signal = "SIGINT"
+kill_timeout = 5
+processes = []
+
+[env]
+  TELEGRAM_BOT_NAME="rodosol_bot"
+  RUST_BACKTRACE="1"
+
+[experimental]
+  auto_rollback = true
+
+[[services]]
+  http_checks = []
+  internal_port = 8080
+  processes = ["app"]
+  protocol = "tcp"
+  script_checks = []
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+    type = "connections"
