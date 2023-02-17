@@ -1,4 +1,5 @@
 extern crate futures;
+extern crate log;
 extern crate reqwest;
 extern crate scraper;
 
@@ -49,6 +50,7 @@ async fn send_pictures(
     let collected = selected_nodes.into_iter().collect::<Vec<_>>();
 
     if collected.len() == 0 {
+        log::warn!("Failed to scrape rodosol pictures.");
         api.send(message.text_reply("Imagens indisponiveis no site da Rodosol."))
             .await?;
         return Ok(());
@@ -83,14 +85,13 @@ fn get_command(message: &str, bot_name: &str) -> Option<Command> {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dotenv::dotenv().ok();
+async fn start_telegram_server() -> Result<(), Box<dyn std::error::Error>> {
+    log::info!("Setting up telegram server..");
 
     let bot_name = env::var("TELEGRAM_BOT_NAME").expect("TELEGRAM_BOT_NAME not set");
     let token = env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN not set");
-    let api = Api::new(token);
 
+    let api = Api::new(token);
     let mut stream = api.stream();
 
     // .compat() is needed here
@@ -109,9 +110,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 match command {
                     Some(Command::TerceiraPonteNow) => {
+                        log::debug!("Triggering {:?} command", Command::TerceiraPonteNow);
                         send_pictures(api, message, RoadType::TerceiraPonte).await?
                     }
                     Some(Command::RodosolNow) => {
+                        log::debug!("Triggering {:?} command", Command::RodosolNow);
                         send_pictures(api, message, RoadType::Rodosol).await?
                     }
                     _ => (),
@@ -121,4 +124,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+#[tokio::main]
+async fn main() {
+    dotenv::dotenv().ok();
+    env_logger::init();
+
+    log::info!("Initializing process..");
+
+    /*
+     * This handles terminating all threads in case
+     * one of them gets terminated/finished.
+     */
+    tokio::select! {
+        _ = start_telegram_server() => {},
+    };
+
+    tokio::signal::ctrl_c().await.unwrap();
+
+    log::info!("Received Ctrl-C, shutting down.");
 }

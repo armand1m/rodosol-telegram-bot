@@ -7,18 +7,7 @@ processes = []
 
 [env]
   TELEGRAM_BOT_NAME="rodosol_bot"
-  RUST_BACKTRACE="1"
+  RUST_LOG="rodosol_telegram_bot"
 
 [experimental]
   auto_rollback = true
-
-[[services]]
-  http_checks = []
-  internal_port = 5000
-  processes = ["app"]
-  protocol = "tcp"
-  script_checks = []
-  [services.concurrency]
-    hard_limit = 25
-    soft_limit = 20
-    type = "connections"
