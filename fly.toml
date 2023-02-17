@@ -11,11 +11,3 @@ processes = []
 
 [experimental]
   auto_rollback = true
-
-[checks]
-  [checks.tcp_check]
-    grace_period = "30s"
-    interval = "15s"
-    port = 8080
-    timeout = "10s"
-    type = "tcp"

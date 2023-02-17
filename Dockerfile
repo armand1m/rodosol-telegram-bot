@@ -9,5 +9,4 @@ RUN apt-get -y install openssl ca-certificates
 RUN rm -rf /var/lib/apt/lists/*
 COPY --from=builder /usr/local/cargo/bin/rodosol-telegram-bot /usr/local/bin/rodosol-telegram-bot
 USER nobody 
-EXPOSE 8080
 ENTRYPOINT ["rodosol-telegram-bot"]

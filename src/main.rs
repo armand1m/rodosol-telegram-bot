@@ -6,8 +6,6 @@ extern crate scraper;
 use futures::future;
 use futures::StreamExt;
 use std::env;
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpListener;
 
 use scraper::{Html, Selector};
 use telegram_bot::prelude::*;
@@ -128,38 +126,19 @@ async fn start_telegram_server() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn start_healthcheck_server() -> Result<(), std::io::Error> {
-    log::info!("Setting up tcp listener..");
-
-    let addr = "0.0.0.0:8080";
-    let listener = TcpListener::bind(addr).await.unwrap();
-    log::info!("Listening on: {}", addr);
-
-    loop {
-        let (mut socket, _) = listener.accept().await.unwrap();
-
-        tokio::spawn(async move {
-            let response = b"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\r\nbot is running and healthy\r\n";
-            if let Err(e) = socket.write_all(response).await {
-                log::error!("failed to write to socket; err = {:?}", e);
-            }
-        });
-    }
-}
-
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
     env_logger::init();
 
     log::info!("Initializing process..");
+
     /*
      * This handles terminating all threads in case
      * one of them gets terminated/finished.
      */
     tokio::select! {
         _ = start_telegram_server() => {},
-        _ = start_healthcheck_server() => {},
     };
 
     tokio::signal::ctrl_c().await.unwrap();
